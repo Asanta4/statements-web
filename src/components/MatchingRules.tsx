@@ -19,6 +19,8 @@ import {
   InputAdornment,
   Fab,
   Tooltip,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -26,8 +28,13 @@ import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import { ReasonMapping } from '../types';
 
-// Import the initial mappings from a central location
-import { REASON_MAPPINGS } from '../data/reasonMappings';
+// Import storage service for persistence
+import {
+  getMatchingRules,
+  addMatchingRule,
+  updateMatchingRule,
+  deleteMatchingRule,
+} from '../services/storageService';
 
 const MatchingRules = () => {
   const [mappings, setMappings] = useState<ReasonMapping[]>([]);
@@ -40,11 +47,20 @@ const MatchingRules = () => {
   const [editedReason, setEditedReason] = useState('');
   const [newSearchTerm, setNewSearchTerm] = useState('');
   const [newReason, setNewReason] = useState('');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   useEffect(() => {
-    // In a real app, this would fetch from an API or local storage
-    setMappings(REASON_MAPPINGS);
-    setFilteredMappings(REASON_MAPPINGS);
+    // Load matching rules from storage
+    try {
+      const storedMappings = getMatchingRules();
+      setMappings(storedMappings);
+      setFilteredMappings(storedMappings);
+    } catch (error) {
+      console.error('Error loading matching rules:', error);
+      showSnackbar('Error loading matching rules', 'error');
+    }
   }, []);
 
   useEffect(() => {
@@ -60,6 +76,12 @@ const MatchingRules = () => {
     }
   }, [searchTerm, mappings]);
 
+  const showSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
   };
@@ -72,18 +94,31 @@ const MatchingRules = () => {
   };
 
   const handleDelete = (searchTerm: string) => {
-    setMappings(mappings.filter(mapping => mapping.searchTerm !== searchTerm));
+    try {
+      const updatedMappings = deleteMatchingRule(searchTerm);
+      setMappings(updatedMappings);
+      showSnackbar('Rule deleted successfully', 'success');
+    } catch (error) {
+      console.error('Error deleting rule:', error);
+      showSnackbar('Error deleting rule', 'error');
+    }
   };
 
   const handleSaveEdit = () => {
     if (currentMapping && editedSearchTerm && editedReason) {
-      const updatedMappings = mappings.map(mapping => 
-        mapping.searchTerm === currentMapping.searchTerm
-          ? { searchTerm: editedSearchTerm, reason: editedReason }
-          : mapping
-      );
-      setMappings(updatedMappings);
-      setEditDialogOpen(false);
+      try {
+        const updatedRule: ReasonMapping = {
+          searchTerm: editedSearchTerm,
+          reason: editedReason
+        };
+        const updatedMappings = updateMatchingRule(currentMapping.searchTerm, updatedRule);
+        setMappings(updatedMappings);
+        setEditDialogOpen(false);
+        showSnackbar('Rule updated successfully', 'success');
+      } catch (error) {
+        console.error('Error updating rule:', error);
+        showSnackbar(error instanceof Error ? error.message : 'Error updating rule', 'error');
+      }
     }
   };
 
@@ -103,22 +138,19 @@ const MatchingRules = () => {
 
   const handleAddRule = () => {
     if (newSearchTerm && newReason) {
-      // Check if the search term already exists
-      const exists = mappings.some(mapping => 
-        mapping.searchTerm.toLowerCase() === newSearchTerm.toLowerCase()
-      );
-
-      if (!exists) {
+      try {
         const newMapping: ReasonMapping = {
           searchTerm: newSearchTerm,
           reason: newReason
         };
         
-        setMappings([...mappings, newMapping]);
+        const updatedMappings = addMatchingRule(newMapping);
+        setMappings(updatedMappings);
         setAddDialogOpen(false);
-      } else {
-        // In a real app, you would show an error message
-        alert('A rule with this search term already exists');
+        showSnackbar('Rule added successfully', 'success');
+      } catch (error) {
+        console.error('Error adding rule:', error);
+        showSnackbar(error instanceof Error ? error.message : 'Error adding rule', 'error');
       }
     }
   };
@@ -279,8 +311,24 @@ const MatchingRules = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
 
-export default MatchingRules; 
+export default MatchingRules;

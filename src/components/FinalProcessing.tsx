@@ -19,7 +19,7 @@ import { ProcessedCSV, ImageAnalysisResult } from '../types';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DownloadIcon from '@mui/icons-material/Download';
 import csvService from '../services/csvService';
-import { REASON_MAPPINGS } from '../data/reasonMappings';
+import { getMatchingRules } from '../services/storageService';
 
 interface FinalProcessingProps {
   processedCSV: ProcessedCSV;
@@ -62,11 +62,14 @@ const FinalProcessing = ({
     setSuccess(false);
 
     try {
+      // Get the current matching rules from storage
+      const currentMappings = getMatchingRules();
+      
       // Use the CSV service to generate the final CSV
       const csvContent = csvService.generateFinalCSV(
         processedCSV,
         checkImages,
-        REASON_MAPPINGS
+        currentMappings
       );
 
       // Calculate how many rows got reasons assigned
@@ -74,7 +77,7 @@ const FinalProcessing = ({
         const reason = csvService.assignReason(
           row.description,
           row.checkName || '',
-          REASON_MAPPINGS
+          currentMappings
         );
         return reason !== '';
       }).length;
