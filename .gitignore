@@ -38,3 +38,6 @@ build
 
 # Testing
 coverage
+
+# Local Netlify folder
+.netlify
