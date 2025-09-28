@@ -29,12 +29,26 @@ build
 *.sln
 *.sw?
 
-# Environment variables
+# Environment variables - NEVER commit these!
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*
+
+# API Keys and Secrets
+*.key
+*.pem
+*.p12
+*.pfx
+config/secrets.yml
+secrets.json
+credentials.json
+
+# OAuth and Authentication
+client_secrets.json
+service-account-key.json
 
 # Testing
 coverage

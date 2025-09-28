@@ -19,17 +19,20 @@ import FolderIcon from '@mui/icons-material/Folder';
 import RuleIcon from '@mui/icons-material/Rule';
 import CloseIcon from '@mui/icons-material/Close';
 import HilikLogo from './HilikLogo';
+import UserProfile from './UserProfile';
 
 interface AppMenuProps {
   onNavigate: (step: number) => void;
   currentStep: number;
   activeView?: 'process' | 'files' | 'rules';
   onViewChange?: (view: 'process' | 'files' | 'rules') => void;
+  onSignOut?: () => void;
 }
 
-const AppMenu = ({ 
-  activeView = 'process', 
-  onViewChange 
+const AppMenu = ({
+  activeView = 'process',
+  onViewChange,
+  onSignOut
 }: AppMenuProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const theme = useTheme();
@@ -75,49 +78,53 @@ const AppMenu = ({
             <HilikLogo />
           </Box>
           
-          {!isMobile && (
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button 
-                color="inherit" 
-                startIcon={<PlayArrowIcon />}
-                onClick={() => handleMenuItemClick('process')}
-                sx={{ 
-                  fontWeight: activeView === 'process' ? 'bold' : 'normal',
-                  borderBottom: activeView === 'process' ? '2px solid white' : 'none',
-                  borderRadius: 0,
-                  paddingBottom: '4px',
-                }}
-              >
-                Process
-              </Button>
-              <Button 
-                color="inherit" 
-                startIcon={<FolderIcon />}
-                onClick={() => handleMenuItemClick('files')}
-                sx={{ 
-                  fontWeight: activeView === 'files' ? 'bold' : 'normal',
-                  borderBottom: activeView === 'files' ? '2px solid white' : 'none',
-                  borderRadius: 0,
-                  paddingBottom: '4px',
-                }}
-              >
-                Files
-              </Button>
-              <Button 
-                color="inherit" 
-                startIcon={<RuleIcon />}
-                onClick={() => handleMenuItemClick('rules')}
-                sx={{ 
-                  fontWeight: activeView === 'rules' ? 'bold' : 'normal',
-                  borderBottom: activeView === 'rules' ? '2px solid white' : 'none',
-                  borderRadius: 0,
-                  paddingBottom: '4px',
-                }}
-              >
-                Matching Rules
-              </Button>
-            </Box>
-          )}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {!isMobile && (
+              <Box sx={{ display: 'flex', gap: 2, mr: 2 }}>
+                <Button
+                  color="inherit"
+                  startIcon={<PlayArrowIcon />}
+                  onClick={() => handleMenuItemClick('process')}
+                  sx={{
+                    fontWeight: activeView === 'process' ? 'bold' : 'normal',
+                    borderBottom: activeView === 'process' ? '2px solid white' : 'none',
+                    borderRadius: 0,
+                    paddingBottom: '4px',
+                  }}
+                >
+                  Process
+                </Button>
+                <Button
+                  color="inherit"
+                  startIcon={<FolderIcon />}
+                  onClick={() => handleMenuItemClick('files')}
+                  sx={{
+                    fontWeight: activeView === 'files' ? 'bold' : 'normal',
+                    borderBottom: activeView === 'files' ? '2px solid white' : 'none',
+                    borderRadius: 0,
+                    paddingBottom: '4px',
+                  }}
+                >
+                  Files
+                </Button>
+                <Button
+                  color="inherit"
+                  startIcon={<RuleIcon />}
+                  onClick={() => handleMenuItemClick('rules')}
+                  sx={{
+                    fontWeight: activeView === 'rules' ? 'bold' : 'normal',
+                    borderBottom: activeView === 'rules' ? '2px solid white' : 'none',
+                    borderRadius: 0,
+                    paddingBottom: '4px',
+                  }}
+                >
+                  Matching Rules
+                </Button>
+              </Box>
+            )}
+
+            {onSignOut && <UserProfile onSignOut={onSignOut} />}
+          </Box>
         </Toolbar>
       </AppBar>
 

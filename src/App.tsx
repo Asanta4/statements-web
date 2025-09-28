@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Container, CssBaseline, ThemeProvider, createTheme, Box, GlobalStyles } from '@mui/material'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import CSVUpload from './components/CSVUpload'
 import CheckImageUpload from './components/CheckImageUpload'
 import FinalProcessing from './components/FinalProcessing'
+import GoogleSignIn from './components/GoogleSignIn'
 import { ProcessedCSV, ImageAnalysisResult } from './types'
 import AppMenu from './components/AppMenu'
 import FileHistory from './components/FileHistory'
 import MatchingRules from './components/MatchingRules'
+import { AuthService } from './services/authService'
 
 // Global styles to ensure the app takes up the full viewport
 const globalStyles = (
@@ -126,9 +129,20 @@ function App() {
   const [processedCSV, setProcessedCSV] = useState<ProcessedCSV | null>(null)
   const [checkImages, setCheckImages] = useState<ImageAnalysisResult[]>([])
   const [activeView, setActiveView] = useState<'process' | 'files' | 'rules'>('process')
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [authError, setAuthError] = useState<string>('')
 
-  // Update window dimensions on resize
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+
+  // Check authentication status on app load
   useEffect(() => {
+    const checkAuth = () => {
+      const authenticated = AuthService.isAuthenticated();
+      setIsAuthenticated(authenticated);
+    };
+
+    checkAuth();
+
     const handleResize = () => {
       // This function is kept for future window resize handling if needed
     };
@@ -168,6 +182,31 @@ function App() {
     }
   }
 
+  const handleSignInSuccess = (userInfo: any) => {
+    const result = AuthService.validateAndStoreUser(userInfo);
+    if (result.success) {
+      setIsAuthenticated(true);
+      setAuthError('');
+    } else {
+      setAuthError(result.error || 'Authentication failed');
+    }
+  };
+
+  const handleSignInError = (error: string) => {
+    setAuthError(error);
+    setIsAuthenticated(false);
+  };
+
+  const handleSignOut = () => {
+    setIsAuthenticated(false);
+    setAuthError('');
+    // Reset app state
+    setStep(1);
+    setProcessedCSV(null);
+    setCheckImages([]);
+    setActiveView('process');
+  };
+
   const renderContent = () => {
     if (activeView === 'files') {
       return <FileHistory />;
@@ -198,56 +237,89 @@ function App() {
     return null;
   };
 
-  return (
-    <ThemeProvider theme={theme}>
-      {globalStyles}
-      <CssBaseline />
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        height: '100vh',
-        width: '100vw',
-        overflow: 'hidden',
-        backgroundColor: theme.palette.background.default,
-      }}>
-        <AppMenu 
-          onNavigate={handleNavigate} 
-          currentStep={step}
-          activeView={activeView}
-          onViewChange={handleViewChange}
-        />
-        <Box 
-          component="main" 
-          sx={{ 
-            flexGrow: 1, 
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            width: '100%',
-            height: `calc(100vh - 64px)`, // Subtract AppBar height
-            overflow: 'auto', // Enable scrolling for content
-            padding: { xs: 2, sm: 3, md: 4 },
-            mt: '84px', // Increased margin-top to add more space (was 64px)
-          }}
-        >
-          <Container 
-            maxWidth="lg" 
-            sx={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center',
-              justifyContent: 'flex-start',
-              width: '100%',
-              flexGrow: 1,
-              py: 4,
-            }}
-          >
-            {renderContent()}
+  // Check if Google Client ID is configured
+  if (!googleClientId) {
+    return (
+      <ThemeProvider theme={theme}>
+        {globalStyles}
+        <CssBaseline />
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          backgroundColor: theme.palette.background.default,
+        }}>
+          <Container maxWidth="sm" sx={{ textAlign: 'center' }}>
+            <div>Google Client ID not configured. Please add VITE_GOOGLE_CLIENT_ID to your environment variables.</div>
           </Container>
         </Box>
-      </Box>
-    </ThemeProvider>
+      </ThemeProvider>
+    );
+  }
+
+  return (
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <ThemeProvider theme={theme}>
+        {globalStyles}
+        <CssBaseline />
+
+        {!isAuthenticated ? (
+          <GoogleSignIn
+            onSignInSuccess={handleSignInSuccess}
+            onSignInError={handleSignInError}
+            errorMessage={authError}
+          />
+        ) : (
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100vh',
+            width: '100vw',
+            overflow: 'hidden',
+            backgroundColor: theme.palette.background.default,
+          }}>
+            <AppMenu
+              onNavigate={handleNavigate}
+              currentStep={step}
+              activeView={activeView}
+              onViewChange={handleViewChange}
+              onSignOut={handleSignOut}
+            />
+            <Box
+              component="main"
+              sx={{
+                flexGrow: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                width: '100%',
+                height: `calc(100vh - 64px)`, // Subtract AppBar height
+                overflow: 'auto', // Enable scrolling for content
+                padding: { xs: 2, sm: 3, md: 4 },
+                mt: '84px', // Increased margin-top to add more space (was 64px)
+              }}
+            >
+              <Container
+                maxWidth="lg"
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  width: '100%',
+                  flexGrow: 1,
+                  py: 4,
+                }}
+              >
+                {renderContent()}
+              </Container>
+            </Box>
+          </Box>
+        )}
+      </ThemeProvider>
+    </GoogleOAuthProvider>
   )
 }
 
