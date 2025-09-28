@@ -35,7 +35,7 @@ build
 .env.development.local
 .env.test.local
 .env.production.local
-.env.*
+!.env.example
 
 # API Keys and Secrets
 *.key
