@@ -33,8 +33,11 @@ export const analyzeCheckImage = async (imageFile: File): Promise<ImageAnalysisR
       imageUrl
     };
   } catch (error) {
-    console.error('Error analyzing check image:', error);
-    throw new Error('Failed to analyze check image: ' + (error instanceof Error ? error.message : String(error)));
+    // Remove API key from error message before logging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const safeErrorMessage = errorMessage.replace(/sk-[a-zA-Z0-9_-]+/g, 'sk-***');
+    console.error('Error analyzing check image:', safeErrorMessage);
+    throw new Error('Failed to analyze check image: ' + safeErrorMessage);
   }
 };
 
@@ -109,7 +112,15 @@ const analyzeWithOpenAI = async (base64Image: string): Promise<{ checkNumber: st
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(`OpenAI API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      // Remove sensitive information from error message
+      const safeErrorData = { ...errorData };
+      if (safeErrorData.error?.message) {
+        safeErrorData.error.message = safeErrorData.error.message.replace(
+          /sk-[a-zA-Z0-9_-]+/g,
+          'sk-***'
+        );
+      }
+      throw new Error(`OpenAI API error: ${response.status} - ${JSON.stringify(safeErrorData)}`);
     }
 
     const data = await response.json();
@@ -121,8 +132,11 @@ const analyzeWithOpenAI = async (base64Image: string): Promise<{ checkNumber: st
       checkName: result.checkName 
     };
   } catch (error) {
-    console.error('Error calling OpenAI API:', error);
-    throw new Error('Failed to analyze with OpenAI: ' + (error instanceof Error ? error.message : String(error)));
+    // Remove API key from error message before logging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const safeErrorMessage = errorMessage.replace(/sk-[a-zA-Z0-9_-]+/g, 'sk-***');
+    console.error('Error calling OpenAI API:', safeErrorMessage);
+    throw new Error('Failed to analyze with OpenAI: ' + safeErrorMessage);
   }
 };
 
