@@ -1,15 +1,11 @@
 /**
  * GPT-4o Service
- * 
+ *
  * This service handles interactions with the OpenAI API for GPT-4o image analysis.
- * In a production environment, these API calls should be made from a backend server
- * to protect your API keys.
+ * API calls are routed through a Netlify Function to protect the API key.
  */
 
 import { ImageAnalysisResult } from '../types';
-
-// Get the OpenAI API key from environment variables
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 
 /**
  * Analyzes a check image using GPT-4o to extract check number and payee name
@@ -59,84 +55,39 @@ const fileToBase64 = (file: File): Promise<string> => {
 };
 
 /**
- * Analyzes a check image using the OpenAI API with GPT-4o
+ * Analyzes a check image using the Netlify Function (which calls OpenAI API securely)
  */
 const analyzeWithOpenAI = async (base64Image: string): Promise<{ checkNumber: string, checkName: string }> => {
   try {
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key is missing. Please add it to your .env file as VITE_OPENAI_API_KEY.');
-    }
+    // Determine the API endpoint based on environment
+    const functionEndpoint = process.env.NODE_ENV === 'development'
+      ? 'http://localhost:8888/.netlify/functions/analyze-check'
+      : '/.netlify/functions/analyze-check';
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(functionEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an AI assistant specialized in analyzing check images.
-            Your task is to carefully extract two key pieces of information:
-            1. The check number (usually found in the top-right corner)
-            2. The payee name (text that appears after "Pay to the order of")
-            
-            Analyze the image thoroughly, looking for these specific elements.
-            If the check number is unclear, look for other identifying numbers on the check.
-            If the payee name is partially visible, extract what you can see clearly.
-            
-            Return ONLY the extracted information in JSON format:
-            {
-              "checkNumber": "1234",
-              "checkName": "John Smith"
-            }`
-          },
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'Extract the check number and payee name from this check image.' },
-              { 
-                type: 'image_url', 
-                image_url: { 
-                  url: `data:image/jpeg;base64,${base64Image}` 
-                } 
-              }
-            ]
-          }
-        ],
-        response_format: { type: "json_object" }
+        base64Image
       })
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      // Remove sensitive information from error message
-      const safeErrorData = { ...errorData };
-      if (safeErrorData.error?.message) {
-        safeErrorData.error.message = safeErrorData.error.message.replace(
-          /sk-[a-zA-Z0-9_-]+/g,
-          'sk-***'
-        );
-      }
-      throw new Error(`OpenAI API error: ${response.status} - ${JSON.stringify(safeErrorData)}`);
+      throw new Error(`Analysis failed: ${errorData.message || errorData.error || 'Unknown error'}`);
     }
 
-    const data = await response.json();
-    
-    // Parse the JSON response
-    const result = JSON.parse(data.choices[0].message.content);
-    return { 
-      checkNumber: result.checkNumber, 
-      checkName: result.checkName 
+    const result = await response.json();
+    return {
+      checkNumber: result.checkNumber,
+      checkName: result.checkName
     };
   } catch (error) {
-    // Remove API key from error message before logging
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const safeErrorMessage = errorMessage.replace(/sk-[a-zA-Z0-9_-]+/g, 'sk-***');
-    console.error('Error calling OpenAI API:', safeErrorMessage);
-    throw new Error('Failed to analyze with OpenAI: ' + safeErrorMessage);
+    console.error('Error calling analysis function:', errorMessage);
+    throw new Error('Failed to analyze check image: ' + errorMessage);
   }
 };
 

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Netlify Function</title>
+</head>
+<body>
+    <h1>Test OpenAI Function</h1>
+    <button onclick="testFunction()">Test Function</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testFunction() {
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = 'Testing...';
+
+            try {
+                // Test with a dummy base64 image string
+                const response = await fetch('http://localhost:8888/.netlify/functions/analyze-check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        // Using a small test image (1x1 pixel transparent PNG)
+                        base64Image: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+                    })
+                });
+
+                const data = await response.json();
+                resultEl.textContent = JSON.stringify(data, null, 2);
+
+                if (response.ok) {
+                    console.log('✅ Function is working! API key is secure on backend.');
+                } else {
+                    console.log('❌ Function returned an error:', data);
+                }
+            } catch (error) {
+                resultEl.textContent = 'Error: ' + error.message;
+                console.error('❌ Failed to call function:', error);
+            }
+        }
+    </script>
+</body>
+</html>
