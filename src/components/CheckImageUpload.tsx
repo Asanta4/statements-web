@@ -66,8 +66,8 @@ const CheckImageUpload = ({ onImagesProcessed, onBack }: CheckImageUploadProps) 
   };
 
   const onDrop = async (acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 50) {
-      setError('Maximum 50 images allowed');
+    if (acceptedFiles.length > 100) {
+      setError('Maximum 100 images allowed');
       return;
     }
 
@@ -103,7 +103,7 @@ const CheckImageUpload = ({ onImagesProcessed, onBack }: CheckImageUploadProps) 
     accept: {
       'image/*': ['.png', '.jpg', '.jpeg']
     },
-    maxFiles: 50
+    maxFiles: 100
   });
 
   const handleCheckNameChange = (value: string) => {
@@ -197,7 +197,7 @@ const CheckImageUpload = ({ onImagesProcessed, onBack }: CheckImageUploadProps) 
             <Typography>
               {isDragActive
                 ? 'Drop the check images here'
-                : 'Drag and drop check images here, or click to select (max 50)'}
+                : 'Drag and drop check images here, or click to select (max 100)'}
             </Typography>
           )}
         </Paper>
